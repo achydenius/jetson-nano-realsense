@@ -1,32 +1,42 @@
-#include <librealsense2/rs.hpp>
 #include <iostream>
+#include <GLFW/glfw3.h>
+#include "Sensor.h"
 
 int main(int argc, char* argv[]) {
-    rs2::context ctx;
-    auto list = ctx.query_devices();
-    if (list.size() == 0) {
-        throw std::runtime_error("No device detected.");
-    }
-    rs2::device dev = list.front();
-    std::cout << "Device found: " << dev.get_info(RS2_CAMERA_INFO_NAME) << std::endl;
+    Sensor sensor;
 
-    rs2::pipeline pipe(ctx);
-    rs2::config config;
-    config.enable_stream(RS2_STREAM_DEPTH, 0, 848, 480, RS2_FORMAT_Z16, 30);
-    pipe.start(config);
-
-    while (true) {
-        rs2::frameset frames = pipe.wait_for_frames();
-        rs2::depth_frame depth = frames.get_depth_frame();
-
-        float width = depth.get_width();
-        float height = depth.get_height();
-        float dist = depth.get_distance(width / 2, height / 2);
-
-        std::cout << "The camera is facing an object " << dist << " meters away" << std::endl;
+    if (!glfwInit()) {
+        throw std::runtime_error("GLFW could not be initialized.");
     }
 
-    pipe.stop();
+    GLFWwindow* window = glfwCreateWindow(640, 480, "jetson-nano-realsense", 0, 0);
+    if (!window) {
+        throw std::runtime_error("GLFW window could not be opened.");
+        glfwTerminate();
+    }
+    glfwMakeContextCurrent(window);
+
+    while (!glfwWindowShouldClose(window)) {
+        Sensor::Frame frame = sensor.getFrame();
+        float scale = frame.data[(frame.height / 2 * frame.width) + (frame.width / 2)] * sensor.getScale();
+
+        glClear(GL_COLOR_BUFFER_BIT);
+        glLoadIdentity();
+	
+        glScalef(scale, scale, scale);
+        glColor3f(1.0, 1.0, 1.0);
+        glBegin(GL_QUADS);
+            glVertex2f(-0.5, 0.5);
+            glVertex2f(0.5, 0.5);
+            glVertex2f(0.5, -0.5);
+            glVertex2f(-0.5, -0.5);
+        glEnd();
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glfwTerminate();
 
     return EXIT_SUCCESS;
 }
