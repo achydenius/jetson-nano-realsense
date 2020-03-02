@@ -1,11 +1,10 @@
 #include <librealsense2/rs.hpp>
 #include <iostream>
 
-unsigned const SENSOR_WIDTH = 848;
-unsigned const SENSOR_HEIGHT = 480;
-unsigned const SENSOR_FPS = 30;
-
 class Sensor {
+    const int width;
+    const int height;
+    const int fps;
     rs2::context context;
     rs2::device device;
     rs2::pipeline pipe;
@@ -18,7 +17,7 @@ public:
         int height;
     };
 
-    Sensor() {
+    Sensor(int width, int height, int fps = 30) : width(width), height(height), fps(fps) {
         rs2::device_list list = context.query_devices();
         if (list.size() == 0) {
             throw std::runtime_error("No device detected.");
@@ -29,7 +28,7 @@ public:
         scale = getDepthScale();
 
         rs2::config config;
-        config.enable_stream(RS2_STREAM_DEPTH, 0, SENSOR_WIDTH, SENSOR_HEIGHT, RS2_FORMAT_Z16, SENSOR_FPS);
+        config.enable_stream(RS2_STREAM_DEPTH, 0, width, height, RS2_FORMAT_Z16, fps);
         pipe.start(config);
         std::cout << "Stream started." << std::endl;
     }
